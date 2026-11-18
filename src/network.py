@@ -107,11 +107,24 @@ class Sequential:
         """
         # assert  Ověřte, že seznam self.layers neni prazdny
         # assert  Ověřte, že x je 2D pole (n_vzorku, n_vstupu)
-        raise NotImplementedError(
-            "Úkol: (brana z Cviceni 09 + rozsireni) nastavte self.io_ = [x] a "
-            "self.z_ = []; pro kazdou vrstvu spocitejte z = layer.linear(self.io_[-1]), "
-            "pripojte z do self.z_ a layer.activation(z) do self.io_; vratte self.io_[-1]."
-        )
+        # raise NotImplementedError(
+        #     "Úkol: (brana z Cviceni 09 + rozsireni) nastavte self.io_ = [x] a "
+        #     "self.z_ = []; pro kazdou vrstvu spocitejte z = layer.linear(self.io_[-1]), "
+        #     "pripojte z do self.z_ a layer.activation(z) do self.io_; vratte self.io_[-1]."
+        # )
+        assert len(self.layers) > 0, "Seznam vrstev (self.layers) nesmí být prázdný."
+        assert isinstance(x, np.ndarray) and x.ndim == 2, "Vstup x musí být 2D pole (matice)."
+
+        self.io_ = [x]
+        self.z_ = []
+
+        for layer in self.layers:
+            z = layer.linear(self.io_[-1])
+            self.z_.append(z)
+            a = layer.activation(z)
+            self.io_.append(a)
+
+        return self.io_[-1]
 
     def backward(self, loss_gradient: np.ndarray) -> list[tuple[np.ndarray, np.ndarray | None]]:
         """Zpetne sireni chyby: spocita gradienty vah a biasu vsech vrstev (NOVE).
@@ -147,12 +160,39 @@ class Sequential:
         """
         # assert  Ověřte, že self.io_ a self.z_ nejsou None (nejdriv musi probehnout forward)
         # assert  Ověřte, že loss_gradient ma stejny tvar jako vystup site self.io_[-1]
-        raise NotImplementedError(
-            "Úkol: implementujte zpetne sireni chyby - od posledni vrstvy k prvni "
-            "spocitejte delta = grad * activation.derivative(z), dW = io_[k].T @ delta, "
-            "db = delta.sum(axis=0) a grad = delta @ W.T; vratte seznam (dW, db) "
-            "v doprednem poradi vrstev."
-        )
+        # raise NotImplementedError(
+        #     "Úkol: implementujte zpetne sireni chyby - od posledni vrstvy k prvni "
+        #     "spocitejte delta = grad * activation.derivative(z), dW = io_[k].T @ delta, "
+        #     "db = delta.sum(axis=0) a grad = delta @ W.T; vratte seznam (dW, db) "
+        #     "v doprednem poradi vrstev."
+        # )
+        assert self.io_ is not None and self.z_ is not None, "Před voláním backward musí proběhnout forward."
+        assert loss_gradient.shape == self.io_[-1].shape, "Tvar loss_gradient neodpovídá výstupu sítě."
+
+        grad = loss_gradient
+        L = len(self.layers)
+        gradients = []
+
+        # Zpětný průchod od poslední vrstvy (L-1) po první (0)
+        for k in range(L - 1, -1, -1):
+            layer = self.layers[k]
+            z = self.z_[k]
+            x_k = self.io_[k]  # Vstup do vrstvy k
+
+            # Krok 1: delta pro aktuální vrstvu
+            delta = grad * layer.activation.derivative(z)
+
+            # Krok 2: gradienty vzhledem k vahám a biasu (přes vzorky)
+            dW = x_k.T @ delta
+            db = delta.sum(axis=0) if layer.linear.bias is not None else None
+
+            gradients.append((dW, db))
+
+            # Krok 3: gradient pro předchozí vrstvu (dL/d(io_[k]))
+            if k > 0:  # Zabrání zbytečnému výpočtu gradientu na vstupu do sítě
+                grad = delta @ layer.linear.weights.T
+        # Vrátíme v dopředném pořadí (protože jsme počítali pozpátku)
+        return gradients[::-1]
 
     def update(
         self,
@@ -172,10 +212,14 @@ class Sequential:
             Kladna delka kroku gradientniho sestupu.
         """
         # assert  Ověřte, že pocet gradientu odpovida poctu vrstev
-        raise NotImplementedError(
-            "Úkol: pro kazdou dvojici (layer, (dW, db)) ze zip(self.layers, gradients) "
-            "zavolejte layer.linear.update(dW, db, learning_rate)."
-        )
+        # raise NotImplementedError(
+        #     "Úkol: pro kazdou dvojici (layer, (dW, db)) ze zip(self.layers, gradients) "
+        #     "zavolejte layer.linear.update(dW, db, learning_rate)."
+        # )
+        assert len(gradients) == len(self.layers), "Počet gradientů musí odpovídat počtu vrstev."
+
+        for layer, (dW, db) in zip(self.layers, gradients):
+            layer.linear.update(dW, db, learning_rate)
 
     def save(self, path: str) -> None:
         """Ulozi celou sit (vsechny vrstvy) do jednoho .npz archivu (PREDVYPLNENO).

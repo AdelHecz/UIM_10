@@ -72,11 +72,16 @@ class Linear:
         """
         # assert  Ověřte, že x je 2D pole (ma atribut ndim == 2)
         # assert  Ověřte, že x.shape[1] odpovida prvnimu rozmeru self.weights
-        raise NotImplementedError(
-            "Úkol: (brana z Cviceni 09) spocitejte z = x @ self.weights + "
-            "(self.bias if self.bias is not None else 0.0) a vratte ho - zadnou "
-            "aktivaci zde neaplikujte."
-        )
+        # raise NotImplementedError(
+        #     "Úkol: (brana z Cviceni 09) spocitejte z = x @ self.weights + "
+        #     "(self.bias if self.bias is not None else 0.0) a vratte ho - zadnou "
+        #     "aktivaci zde neaplikujte."
+        # )
+        assert x.ndim == 2, "Vstup x musí být 2D pole (matice vzorků a příznaků)."
+        assert x.shape[1] == self.weights.shape[0], "Počet příznaků vstupu musí odpovídat prvnímu rozměru matice vah."
+
+        b = self.bias if self.bias is not None else 0.0
+        return x @ self.weights + b
 
     def update(
         self,
@@ -113,11 +118,17 @@ class Linear:
         """
         # assert  Ověřte, že weight_gradient ma stejny tvar jako self.weights
         # assert  Ověřte, že learning_rate je kladne cislo
-        raise NotImplementedError(
-            "Úkol: aktualizujte self.weights = self.weights - learning_rate * "
-            "weight_gradient; pokud self.bias is not None, obdobne "
-            "self.bias = self.bias - learning_rate * bias_gradient."
-        )
+        # raise NotImplementedError(
+        #     "Úkol: aktualizujte self.weights = self.weights - learning_rate * "
+        #     "weight_gradient; pokud self.bias is not None, obdobne "
+        #     "self.bias = self.bias - learning_rate * bias_gradient."
+        # )
+        assert weight_gradient.shape == self.weights.shape, "Tvar weight_gradient musí odpovídat tvaru self.weights."
+        assert learning_rate > 0, "learning_rate musí být kladné číslo."
+
+        self.weights = self.weights - learning_rate * weight_gradient
+        if self.bias is not None:
+            self.bias = self.bias - learning_rate * bias_gradient
 
     def __call__(self, x: np.ndarray) -> np.ndarray:
         """Zkratka pro `forward` - umoznuje volat instanci jako funkci.

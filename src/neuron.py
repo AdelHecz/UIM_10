@@ -135,12 +135,26 @@ class Neuron:
             Cesta k vystupnimu .npz souboru.
         """
         # assert  Ověřte, že self.linear.weights je typu np.ndarray
-        raise NotImplementedError(
-            "Úkol: sestavte slovnik klicu {'weights':..., 'activation_name':...} "
-            "(pripadne 'bias' pokud self.linear.bias is not None a 'temperature' "
-            "pokud je self.activation instance Sigmoid) a ulozte ho pomoci "
-            "np.savez(path, **slovnik)."
-        )
+        # raise NotImplementedError(
+        #     "Úkol: sestavte slovnik klicu {'weights':..., 'activation_name':...} "
+        #     "(pripadne 'bias' pokud self.linear.bias is not None a 'temperature' "
+        #     "pokud je self.activation instance Sigmoid) a ulozte ho pomoci "
+        #     "np.savez(path, **slovnik)."
+        # )
+        assert isinstance(self.linear.weights, np.ndarray), "Váhy musí být np.ndarray"
+
+        archiv = {
+            "weights": self.linear.weights,
+            "activation_name": type(self.activation).__name__
+        }
+
+        if self.linear.bias is not None:
+            archiv["bias"] = self.linear.bias
+
+        if isinstance(self.activation, Sigmoid):
+            archiv["temperature"] = self.activation.temperature
+
+        np.savez(path, **archiv)
 
     @classmethod
     def load(cls, path: str) -> Neuron:
@@ -168,9 +182,24 @@ class Neuron:
             puvodni neuron pred ulozenim.
         """
         # assert  Ověřte, že soubor path existuje (napr. os.path.exists)
-        raise NotImplementedError(
-            "Úkol: nactete archiv pres np.load(path), precte 'weights' a "
-            "volitelne 'bias' (None pokud klic chybi), sestavte Linear(weights, bias), "
-            "pomoci make_activation('activation_name'[, temperature=...]) sestavte "
-            "aktivaci a vratte cls(linear, activation)."
-        )
+        # raise NotImplementedError(
+        #     "Úkol: nactete archiv pres np.load(path), precte 'weights' a "
+        #     "volitelne 'bias' (None pokud klic chybi), sestavte Linear(weights, bias), "
+        #     "pomoci make_activation('activation_name'[, temperature=...]) sestavte "
+        #     "aktivaci a vratte cls(linear, activation)."
+        # )
+        assert os.path.exists(path), f"Soubor na cestě {path} neexistuje."
+
+        with np.load(path) as archiv:
+            weights = archiv["weights"]
+            bias = archiv["bias"] if "bias" in archiv else None
+
+            activation_name = str(archiv["activation_name"])
+            if "temperature" in archiv:
+                temperature = float(archiv["temperature"])
+                activation = make_activation(activation_name, temperature=temperature)
+            else:
+                activation = make_activation(activation_name)
+
+        linear_layer = Linear(weights=weights, bias=bias)
+        return cls(linear=linear_layer, activation=activation)
